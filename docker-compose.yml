@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env          # ANTHROPIC_API_KEY, PINECONE_API_KEY, etc.
+    volumes:
+      - backend_storage:/app/storage   # SQLite DB + uploaded receipts persist here
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # When running locally via docker-compose the browser hits localhost:8000
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_storage:
