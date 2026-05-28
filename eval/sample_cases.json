@@ -132,7 +132,7 @@
       "id": "verdict-meal-01",
       "type": "verdict",
       "description": "Solo dinner within per-meal limit — should be compliant",
-      "receipt_content": "The Pink Door\nSeattle, WA\nDate: February 12, 2025\nServer: Table 12\n\nDinner for 1\nEntree: $38.00\nDessert: $12.00\nSubtotal: $50.00\nTip (18%): $9.00\nTotal: $59.00\n\nCard: Visa ending 4821",
+      "receipt_content": "Cracker Barrel Old Country Store\nColumbus, OH\nDate: February 12, 2025\n\nDinner for 1\nCountry Dinner Plate: $14.99\nSweet Tea: $2.99\nSubtotal: $17.98\nTip (18%): $3.24\nTotal: $21.22\n\nCard: Visa ending 4821",
       "receipt_filename": "eval_dinner_within_cap.txt",
       "employee": {
         "employee_id": "EVAL-T01",
