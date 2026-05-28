@@ -110,7 +110,11 @@ _VERDICT_TOOL: dict = {
             "policy_citations": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Policy references, e.g. ['TEP-001 §4.1: Economy class default'].",
+                "description": (
+                    "Policy references grounded ONLY in the policy excerpts provided above. "
+                    "Copy the citation header exactly as it appears in the context (e.g. 'TEP-001 §3: City tier rate caps'). "
+                    "Do NOT invent section numbers or cite sections not present in the provided excerpts."
+                ),
             },
             "confidence": {
                 "type": "number",
@@ -132,7 +136,9 @@ _SYSTEM_PROMPT = (
     "the specific policy sections violated so the manager can make an informed decision. "
     "Use 'needs_review' when there is insufficient information to assess compliance. "
     "Always be precise: cite specific policy sections, note exact dollar limits, and consider the "
-    "employee's grade level when evaluating per-meal caps, hotel rates, and travel class entitlements."
+    "employee's grade level when evaluating per-meal caps, hotel rates, and travel class entitlements. "
+    "CRITICAL: policy_citations must contain ONLY citations whose section headers appear verbatim in "
+    "the policy context provided. Never infer or fabricate section numbers."
 )
 
 
