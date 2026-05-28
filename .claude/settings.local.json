@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m venv venv)",
+      "Bash(mkdir -p /Users/pavankalyannatukula/northwind-expense-reviewer/backend/data/policies)",
+      "Bash(rm /Users/pavankalyannatukula/northwind-expense-reviewer/backend/data/policies/*.txt && echo \"Removed placeholder text files\")",
+      "Bash(python -c ' *)",
+      "Bash(curl -sv http://127.0.0.1:8000/employees/)",
+      "Bash(curl -s http://127.0.0.1:8000/employees/NW-04821)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s http://127.0.0.1:8000/employees/NW-XXXXX)",
+      "Bash(curl -s http://127.0.0.1:8000/submissions/)",
+      "Bash(curl -s http://127.0.0.1:8000/submissions/1)",
+      "Bash(curl -s \"http://127.0.0.1:8000/submissions/?employee_id=NW-04821\")",
+      "Bash(curl -s -X PATCH http://127.0.0.1:8000/submissions/1/status -H 'Content-Type: application/json' -d '{\"status\": \"under_review\", \"notes\": \"Checking receipts\"}')"
+    ],
+    "additionalDirectories": [
+      "/Users/pavankalyannatukula/northwind-expense-reviewer/backend/data/policies"
+    ]
+  }
+}

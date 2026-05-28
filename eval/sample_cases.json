@@ -1,0 +1,156 @@
+{
+  "version": "1.0",
+  "description": "Sample evaluation suite for Northwind Expense Reviewer. Drop in your own held-out cases following the same schema.",
+  "test_cases": [
+
+    {
+      "id": "qa-inscope-01",
+      "type": "policy_qa",
+      "description": "Meal limit for grade 4 — in scope, expects a dollar figure",
+      "question": "What is the per-meal dinner limit for a grade 4 employee?",
+      "expected": {
+        "is_in_scope": true,
+        "has_citations": true,
+        "answer_mentions_any": ["$75", "$80", "75", "80", "per meal", "dinner"]
+      }
+    },
+
+    {
+      "id": "qa-inscope-02",
+      "type": "policy_qa",
+      "description": "Alcohol at client dinner — in scope",
+      "question": "Can I expense alcohol at a client dinner?",
+      "expected": {
+        "is_in_scope": true,
+        "has_citations": true
+      }
+    },
+
+    {
+      "id": "qa-inscope-03",
+      "type": "policy_qa",
+      "description": "Domestic flight class — in scope, expects economy reference",
+      "question": "What class of service is allowed for domestic flights under 6 hours?",
+      "expected": {
+        "is_in_scope": true,
+        "has_citations": true,
+        "answer_mentions_any": ["economy", "Economy"]
+      }
+    },
+
+    {
+      "id": "qa-inscope-04",
+      "type": "policy_qa",
+      "description": "Hotel rate limit NYC — in scope, expects dollar figure",
+      "question": "What is the hotel nightly rate limit in New York City?",
+      "expected": {
+        "is_in_scope": true,
+        "has_citations": true,
+        "answer_mentions_any": ["$250", "$300", "$350", "250", "300", "350"]
+      }
+    },
+
+    {
+      "id": "qa-oos-01",
+      "type": "policy_qa",
+      "description": "Capital of France — completely out of scope",
+      "question": "What is the capital of France?",
+      "expected": {
+        "is_in_scope": false
+      }
+    },
+
+    {
+      "id": "qa-oos-02",
+      "type": "policy_qa",
+      "description": "Stock price question — out of scope",
+      "question": "What is Northwind's current stock price?",
+      "expected": {
+        "is_in_scope": false
+      }
+    },
+
+    {
+      "id": "qa-oos-03",
+      "type": "policy_qa",
+      "description": "HR leave policy — potentially borderline but not travel expense",
+      "question": "How many sick days am I entitled to per year?",
+      "expected": {
+        "is_in_scope": false
+      }
+    },
+
+    {
+      "id": "verdict-flight-01",
+      "type": "verdict",
+      "description": "Economy domestic flight — should be compliant",
+      "receipt_content": "Alaska Airlines\nConfirmation: AS-2045-LAX-SEA\nPassenger: Eval Tester\nRoute: LAX -> SEA (Economy Class)\nDeparture: April 15, 2025\nBase Fare: $240.00\nTaxes & Fees: $27.40\nTotal Charged: $267.40",
+      "receipt_filename": "eval_flight_economy_lax_sea.txt",
+      "employee": {
+        "employee_id": "EVAL-T01",
+        "name": "Eval Tester",
+        "grade": 4,
+        "title": "Senior Analyst",
+        "department": "Evaluation"
+      },
+      "trip": {
+        "trip_purpose": "Client site visit — evaluation test case",
+        "trip_dates": "2025-04-15 to 2025-04-16"
+      },
+      "expected": {
+        "verdict": "approved",
+        "has_citations": true,
+        "confidence_min": 0.6
+      }
+    },
+
+    {
+      "id": "verdict-hotel-over-01",
+      "type": "verdict",
+      "description": "Hotel over nightly cap — should be flagged",
+      "receipt_content": "Hyatt Regency Seattle\nGuest: Eval Tester\nCheck-in: February 11, 2025\nCheck-out: February 13, 2025\nRoom Type: Deluxe King\nNightly Rate: $457.25\n2 Nights\nSubtotal: $914.50\nTaxes: $0.00\nTotal: $914.50",
+      "receipt_filename": "eval_hotel_over_cap.txt",
+      "employee": {
+        "employee_id": "EVAL-T02",
+        "name": "Eval Reviewer",
+        "grade": 5,
+        "title": "Manager",
+        "department": "Evaluation"
+      },
+      "trip": {
+        "trip_purpose": "QBR meeting — evaluation test case",
+        "trip_dates": "2025-02-11 to 2025-02-13"
+      },
+      "expected": {
+        "verdict": "flagged",
+        "has_citations": true,
+        "confidence_min": 0.6
+      }
+    },
+
+    {
+      "id": "verdict-meal-01",
+      "type": "verdict",
+      "description": "Solo dinner within per-meal limit — should be compliant",
+      "receipt_content": "The Pink Door\nSeattle, WA\nDate: February 12, 2025\nServer: Table 12\n\nDinner for 1\nEntree: $38.00\nDessert: $12.00\nSubtotal: $50.00\nTip (18%): $9.00\nTotal: $59.00\n\nCard: Visa ending 4821",
+      "receipt_filename": "eval_dinner_within_cap.txt",
+      "employee": {
+        "employee_id": "EVAL-T01",
+        "name": "Eval Tester",
+        "grade": 4,
+        "title": "Senior Analyst",
+        "department": "Evaluation"
+      },
+      "trip": {
+        "trip_purpose": "Client site visit — evaluation test case",
+        "trip_dates": "2025-02-11 to 2025-02-13"
+      },
+      "expected": {
+        "verdict": "approved",
+        "has_citations": true,
+        "confidence_min": 0.5
+      }
+    }
+
+  ]
+}
