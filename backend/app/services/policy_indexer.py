@@ -215,23 +215,35 @@ def _semantic_chunk(
 # ── Main entry point ──────────────────────────────────────────────────────────
 
 def _split_into_sub_documents(pdf_path: Path, full_text: str) -> list[tuple["DocMeta", str]]:
-    """Split a multi-TEP PDF into (DocMeta, text) pairs, one per Document: header."""
-    boundary_re = re.compile(r"(?=\S.*?Document:\s*\S+\s+Version:)", re.MULTILINE)
-    segments = boundary_re.split(full_text)
-    segments = [s.strip() for s in segments if s.strip()]
+    """Split a multi-TEP PDF into (DocMeta, text) pairs, one per Document: header.
 
-    if not segments:
+    Each sub-document begins at the title line immediately preceding 'Document: XXX'.
+    """
+    lines = full_text.splitlines()
+    boundary_indices: list[int] = []
+
+    for i, line in enumerate(lines):
+        if re.match(r"Document:\s*\S+\s+Version:", line.strip()):
+            # Include the title line just before the Document: header
+            start = max(0, i - 1)
+            boundary_indices.append(start)
+
+    if not boundary_indices:
         return [(_extract_doc_meta(pdf_path, full_text), full_text)]
+
+    segments: list[str] = []
+    for j, start in enumerate(boundary_indices):
+        end = boundary_indices[j + 1] if j + 1 < len(boundary_indices) else len(lines)
+        seg = "\n".join(lines[start:end]).strip()
+        if seg:
+            segments.append(seg)
 
     result = []
     for seg in segments:
         meta = _extract_doc_meta(pdf_path, seg)
         result.append((meta, seg))
 
-    if not result:
-        result = [(_extract_doc_meta(pdf_path, full_text), full_text)]
-
-    return result
+    return result if result else [(_extract_doc_meta(pdf_path, full_text), full_text)]
 
 
 def index_policies(pinecone_index: Index, policies_dir: Path, force: bool = False) -> int:
