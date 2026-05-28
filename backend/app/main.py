@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import anthropic
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pinecone import Pinecone
 from sqlalchemy.orm import Session
@@ -121,3 +121,11 @@ app.include_router(policy_qa_router.router, tags=["policy-qa"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/admin/reindex", tags=["admin"])
+async def reindex_policies(request: Request):
+    """Delete all Pinecone vectors and re-index all policy PDFs from scratch."""
+    index = request.app.state.pinecone_index
+    total = index_policies(index, settings.policies_dir, force=True)
+    return {"status": "ok", "vectors_indexed": total}

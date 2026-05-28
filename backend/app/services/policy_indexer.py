@@ -214,7 +214,27 @@ def _semantic_chunk(
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def index_policies(pinecone_index: Index, policies_dir: Path) -> int:
+def _split_into_sub_documents(pdf_path: Path, full_text: str) -> list[tuple["DocMeta", str]]:
+    """Split a multi-TEP PDF into (DocMeta, text) pairs, one per Document: header."""
+    boundary_re = re.compile(r"(?=\S.*?Document:\s*\S+\s+Version:)", re.MULTILINE)
+    segments = boundary_re.split(full_text)
+    segments = [s.strip() for s in segments if s.strip()]
+
+    if not segments:
+        return [(_extract_doc_meta(pdf_path, full_text), full_text)]
+
+    result = []
+    for seg in segments:
+        meta = _extract_doc_meta(pdf_path, seg)
+        result.append((meta, seg))
+
+    if not result:
+        result = [(_extract_doc_meta(pdf_path, full_text), full_text)]
+
+    return result
+
+
+def index_policies(pinecone_index: Index, policies_dir: Path, force: bool = False) -> int:
     pdf_files = sorted(
         p for p in policies_dir.iterdir()
         if p.is_file() and p.suffix.lower() == ".pdf"
@@ -223,10 +243,15 @@ def index_policies(pinecone_index: Index, policies_dir: Path) -> int:
         logger.warning("No PDF files found in %s", policies_dir)
         return 0
 
+    if force:
+        logger.info("Force re-index: deleting all existing vectors")
+        pinecone_index.delete(delete_all=True)
+
     logger.info("Loading embedding model: %s", _EMBED_MODEL)
     model = SentenceTransformer(_EMBED_MODEL)
 
     all_vectors: list[dict] = []
+    global_chunk_idx = 0
 
     for pdf_path in pdf_files:
         logger.info("Indexing: %s", pdf_path.name)
@@ -235,50 +260,53 @@ def index_policies(pinecone_index: Index, policies_dir: Path) -> int:
             pages = [p.extract_text() or "" for p in pdf.pages]
 
         full_text = "\n".join(pages)
-        doc_meta = _extract_doc_meta(pdf_path, pages[0])
+        sub_docs = _split_into_sub_documents(pdf_path, full_text)
+        logger.info("  %d sub-document(s) found in %s", len(sub_docs), pdf_path.name)
 
-        logger.info(
-            "  doc_id=%s  title=%r  category=%s  version=%s",
-            doc_meta.doc_id, doc_meta.doc_title, doc_meta.category, doc_meta.version,
-        )
+        for doc_meta, doc_text in sub_docs:
+            logger.info(
+                "  doc_id=%s  title=%r  category=%s  version=%s",
+                doc_meta.doc_id, doc_meta.doc_title, doc_meta.category, doc_meta.version,
+            )
 
-        sections = _split_into_sections(full_text)
-        logger.info("  %d sections detected", len(sections))
+            sections = _split_into_sections(doc_text)
+            logger.info("    %d sections detected", len(sections))
 
-        chunk_idx = 0
-        for section in sections:
-            sentences = _split_sentences(section.body)
-            if not sentences:
-                continue
+            chunk_idx = 0
+            for section in sections:
+                sentences = _split_sentences(section.body)
+                if not sentences:
+                    continue
 
-            embeddings = model.encode(sentences, show_progress_bar=False)
-            chunks = _semantic_chunk(sentences, embeddings)
+                embeddings = model.encode(sentences, show_progress_bar=False)
+                chunks = _semantic_chunk(sentences, embeddings)
 
-            for chunk_text in chunks:
-                all_vectors.append({
-                    "id": f"{pdf_path.stem}__chunk_{chunk_idx}",
-                    "values": model.encode(chunk_text).tolist(),
-                    "metadata": {
-                        # ── document-level (filter axes) ──
-                        "source":         doc_meta.source,
-                        "doc_id":         doc_meta.doc_id,
-                        "doc_title":      doc_meta.doc_title,
-                        "category":       doc_meta.category,
-                        "version":        doc_meta.version,
-                        "effective_date": doc_meta.effective_date,
-                        "owner":          doc_meta.owner,
-                        "applies_to":     doc_meta.applies_to,
-                        # ── section-level (citation granularity) ──
-                        "section_number":  section.number,
-                        "section_heading": section.heading,
-                        # ── chunk-level ──
-                        "chunk_index": chunk_idx,
-                        "text":        chunk_text,
-                    },
-                })
-                chunk_idx += 1
+                for chunk_text in chunks:
+                    all_vectors.append({
+                        "id": f"{pdf_path.stem}__{doc_meta.doc_id}__chunk_{global_chunk_idx}",
+                        "values": model.encode(chunk_text).tolist(),
+                        "metadata": {
+                            # ── document-level (filter axes) ──
+                            "source":         doc_meta.source,
+                            "doc_id":         doc_meta.doc_id,
+                            "doc_title":      doc_meta.doc_title,
+                            "category":       doc_meta.category,
+                            "version":        doc_meta.version,
+                            "effective_date": doc_meta.effective_date,
+                            "owner":          doc_meta.owner,
+                            "applies_to":     doc_meta.applies_to,
+                            # ── section-level (citation granularity) ──
+                            "section_number":  section.number,
+                            "section_heading": section.heading,
+                            # ── chunk-level ──
+                            "chunk_index": global_chunk_idx,
+                            "text":        chunk_text,
+                        },
+                    })
+                    chunk_idx += 1
+                    global_chunk_idx += 1
 
-        logger.info("  %d chunks produced from %s", chunk_idx, pdf_path.name)
+            logger.info("    %d chunks from %s", chunk_idx, doc_meta.doc_id)
 
     total = len(all_vectors)
     logger.info("Upserting %d vectors to Pinecone (batch=%d)", total, _UPSERT_BATCH)
