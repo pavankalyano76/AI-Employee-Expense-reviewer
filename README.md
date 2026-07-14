@@ -1,4 +1,4 @@
-# Northwind Expense Reviewer
+# AI Employee Expense Reviewer
 
 An AI-powered expense review system for Northwind Logistics. Finance reviewers upload employee travel receipts; the system extracts line items, checks each against the company policy library (stored in a vector database), and produces verdicts with exact policy citations. Managers can override any decision with a comment. Every action persists across restarts.
 
